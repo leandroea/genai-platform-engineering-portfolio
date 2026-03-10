@@ -27,29 +27,29 @@ Existing tools often lack these capabilities or require expensive enterprise sol
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Streamlit UI                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ Test Prompt │  │   Compare   │  │   History  │         │
-│  │    Page     │  │   Prompts  │  │    Page    │         │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │ Test Prompt │  │   Compare   │  │   History   │          │
+│  │    Page     │  │   Prompts   │  │    Page     │          │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘          │
 │         │                │                │                 │
 │         └────────────────┼────────────────┘                 │
-│                          ▼                                   │
-│               ┌─────────────────────┐                      │
-│               │   Session State     │                      │
-│               └──────────┬──────────┘                      │
+│                          ▼                                  │
+│               ┌─────────────────────┐                       │
+│               │   Session State     │                       │
+│               └──────────┬──────────┘                       │
 └──────────────────────────┼──────────────────────────────────┘
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                    Service Layer                             │
-│  ┌────────────────────┐    ┌────────────────────┐          │
-│  │  LLM Service       │    │  Database Service  │          │
-│  │  (LangChain+NVIDIA)│    │    (SQLite)        │          │
-│  └─────────┬──────────┘    └─────────┬──────────┘          │
-└────────────┼─────────────────────────┼──────────────────────┘
+│  ┌────────────────────┐    ┌────────────────────┐            │
+│  │  LLM Service       │    │  Database Service  │            │
+│  │  (LangChain+NVIDIA)│    │    (SQLite)        │            │
+│  └─────────┬──────────┘    └─────────┬──────────┘            │
+└────────────┼─────────────────────────┼───────────────────────┘
              ▼                         ▼
 ┌────────────────────────┐    ┌─────────────────────────┐
-│   NVIDIA API          │    │   data/experiments.db   │
-│   Llama 3.3 70B       │    │   (SQLite)             │
+│   NVIDIA API           │    │   data/experiments.db   │
+│   Llama 3.3 70B        │    │   (SQLite)              │
 └────────────────────────┘    └─────────────────────────┘
 ```
 
@@ -104,6 +104,8 @@ The application provides three main pages:
 - Execute all prompts simultaneously
 - View responses in columns
 - Rate each response individually
+
+![Demo Page](demo-page.png)
 
 ### History Page
 - Browse all past experiments
@@ -261,8 +263,3 @@ MIT License - Feel free to use and modify for your needs.
 
 ---
 
-## Acknowledgments
-
-- [Streamlit](https://streamlit.io/) - Web framework
-- [LangChain](https://langchain.com/) - LLM integration
-- [NVIDIA AI Endpoints](https://www.nvidia.com/en-us/ai/) - LLM provider
