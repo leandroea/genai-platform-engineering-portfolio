@@ -33,6 +33,7 @@ env/
 *~
 
 # Environment Variables (keep .env for reference but don't commit secrets)
+.env
 .env.local
 .env.[!local]*
 
