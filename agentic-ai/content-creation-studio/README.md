@@ -1,7 +1,8 @@
 # Content Creation Studio
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![LangChain](https://img.shields.io/badge/LangChain-orange)](https://python.langchain.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-blue)](https://langchain-ai.github.io/langgraph/)
 [![Tests: 39 passed](https://img.shields.io/badge/tests-39%20passed-brightgreen)](tests/)
 
 A multi-agent AI content generation system built with LangGraph that orchestrates research, writing, and editing workflows to produce SEO-optimized content.
@@ -38,38 +39,66 @@ Content Creation Studio is an agentic AI system that automates the creation of h
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Supervisor Agent                           │
-│                   (routes workflow state)                       │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-│   Research    │      │    Writer     │      │    Editor     │
-│    Agent      │      │    Agent      │      │    Agent      │
-│               │      │               │      │               │
-│ • Web Search  │─────▶│ • Write Draft │─────▶│ • Grammar     │
-│ • Extract     │      │ • Structure  │      │ • SEO Format  │
-│   Facts       │      │   Outline    │      │ • Rewrite     │
-└───────────────┘      └───────────────┘      └───────────────┘
-        │                       │                       │
-        └───────────────────────┴───────────────────────┘
-                                │
-                    ┌──────────▼──────────┐
-                    │   Approval Gate      │
-                    │ (Human/Automated)    │
-                    └─────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Input["📥 INPUT"]
+        T[Topic] --> K[Keywords]
+    end
+    
+    subgraph Supervisor["🎯 SUPERVISOR"]
+        S[Supervisor Agent<br/>Routes workflow state]
+    end
+    
+    subgraph Agents["🤖 AGENTS"]
+        subgraph Research["🔍 Research Agent"]
+            R1[Web Search<br/>DuckDuckGo]
+            R2[Extract Facts<br/>LLM Processing]
+        end
+        
+        subgraph Writer["✍️ Writer Agent"]
+            W1[Structure Outline]
+            W2[Write Draft]
+        end
+        
+        subgraph Editor["📝 Editor Agent"]
+            E1[Grammar Check]
+            E2[SEO Format<br/>Keyword Integration]
+            E3[Professional Rewrite]
+        end
+    end
+    
+    subgraph Output["📤 OUTPUT"]
+        A[Approval Gate<br/>Human/Automated]
+        O[Final Content<br/>Markdown File]
+    end
+    
+    T --> S
+    K --> S
+    
+    S --> R1
+    R1 --> R2
+    R2 --> W1
+    W1 --> W2
+    W2 --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> A
+    
+    A -->|Approved| O
+    A -->|Rejected| S
+    
+    O -->|"output/"| FS[File System]
 ```
 
 ### State Flow
 
-1. **Topic Input** → Supervisor validates and routes to Research
-2. **Research** → Web search → Fact extraction → Route to Writer
-3. **Writing** → Draft generation → Route to Editor
-4. **Editing** → Grammar → SEO → Professional rewrite → Approval Gate
-5. **Approval** → Output final content or revision loop
+1. **Input** → Topic + Keywords enter the system
+2. **Supervisor** → Validates input, routes to Research Agent
+3. **Research** → Web search via DuckDuckGo → Fact extraction with LLM
+4. **Writing** → Create outline → Generate draft
+5. **Editing** → Grammar check → SEO optimization → Professional rewrite
+6. **Approval Gate** → Human or automated review
+7. **Output** → Final content saved as Markdown file in `output/`
 
 ---
 
@@ -270,5 +299,5 @@ By participating, you are expected to uphold this project's code of conduct.
 ## Badges
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
-[![Tests: 39 passed](https://img.shields.io/badge/tests-39%20passed-brightgreen)](tests/)
-[![Dependencies: Pinned](https://img.shields.io/badge/dependencies-pinned-blue)](requirements.txt)
+[![LangChain](https://img.shields.io/badge/LangChain-orange)](https://python.langchain.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-blue)](https://langchain-ai.github.io/langgraph/)
