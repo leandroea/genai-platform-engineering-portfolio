@@ -1,0 +1,24 @@
+# FastAPI and server
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+
+# Data and analytics
+pandas>=2.0.0
+numpy>=1.24.0
+
+# HTTP client for external APIs
+requests>=2.28.0
+httpx>=0.24.0
+
+# Configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.0

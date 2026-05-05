@@ -1,0 +1,14 @@
+# RAG Agent Dependencies
+langchain
+langchain-classic
+langchain-openai
+langchain-core
+langchain-community
+langchain-chroma
+langchain-text-splitters
+langchain-nvidia-ai-endpoints
+chromadb
+pypdf
+python-dotenv
+openai
+torch
