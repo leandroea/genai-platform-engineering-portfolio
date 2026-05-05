@@ -3,20 +3,20 @@
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-orange)](https://python.langchain.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-blue)](https://langchain-ai.github.io/langgraph/)
-[![Tests: 39 passed](https://img.shields.io/badge/tests-39%20passed-brightgreen)](tests/)
+[![Tests: 27 passed](https://img.shields.io/badge/tests-27%20passed-brightgreen)](tests/)
 
 A multi-agent AI content generation system built with LangGraph that orchestrates research, writing, and editing workflows to produce SEO-optimized content.
 
 ## Project Description
 
-Content Creation Studio is an agentic AI system that automates the creation of high-quality, SEO-optimized content through a multi-agent pipeline. The system uses a supervisor agent to orchestrate research, writer, and editor agents, leveraging web search for real-time information and LLM capabilities for content generation and refinement.
+Content Creation Studio is an agentic AI system that automates the creation of high-quality, SEO-optimized content through a linear pipeline. The system uses LangGraph to orchestrate research, writer, and editor agents in sequence, leveraging web search for real-time information and LLM capabilities for content generation and refinement.
 
 ### What the Application Does
 
 - **Research Agent**: Searches the web using DuckDuckGo to gather relevant facts and information on any topic
 - **Writer Agent**: Generates structured content drafts based on research findings
 - **Editor Agent**: Performs grammar checking, SEO optimization, and professional rewriting
-- **Supervisor Agent**: Orchestrates the workflow, routing between agents based on pipeline state
+- **Approval Gate**: Human review step before final output
 
 ### Why These Technologies
 
@@ -39,66 +39,47 @@ Content Creation Studio is an agentic AI system that automates the creation of h
 
 ## Architecture
 
+This is a **linear pipeline** architecture where each agent processes the output of the previous one. No supervisor routing is needed - the workflow executes in sequence:
+
 ```mermaid
-flowchart TD
-    subgraph Input["📥 INPUT"]
-        T[Topic] --> K[Keywords]
-    end
-    
-    subgraph Supervisor["🎯 SUPERVISOR"]
-        S[Supervisor Agent<br/>Routes workflow state]
-    end
-    
-    subgraph Agents["🤖 AGENTS"]
-        subgraph Research["🔍 Research Agent"]
-            R1[Web Search<br/>DuckDuckGo]
-            R2[Extract Facts<br/>LLM Processing]
+flowchart LR
+    subgraph Pipeline["Content Creation Pipeline"]
+        direction LR
+        
+        subgraph Input["Input"]
+            T[Topic]
+            K[Keywords]
         end
         
-        subgraph Writer["✍️ Writer Agent"]
-            W1[Structure Outline]
-            W2[Write Draft]
-        end
+        R[Research<br/>Web Search<br/>Fact Extraction]
+        W[Writer<br/>Outline<br/>Draft]
+        E[Editor<br/>Grammar<br/>SEO<br/>Rewrite]
+        A[Approval<br/>Gate]
+        O[Output<br/>Markdown]
         
-        subgraph Editor["📝 Editor Agent"]
-            E1[Grammar Check]
-            E2[SEO Format<br/>Keyword Integration]
-            E3[Professional Rewrite]
-        end
+        T & K --> R
+        R --> W
+        W --> E
+        E --> A
+        A --> O
     end
     
-    subgraph Output["📤 OUTPUT"]
-        A[Approval Gate<br/>Human/Automated]
-        O[Final Content<br/>Markdown File]
-    end
-    
-    T --> S
-    K --> S
-    
-    S --> R1
-    R1 --> R2
-    R2 --> W1
-    W1 --> W2
-    W2 --> E1
-    E1 --> E2
-    E2 --> E3
-    E3 --> A
-    
-    A -->|Approved| O
-    A -->|Rejected| S
-    
-    O -->|"output/"| FS[File System]
+    A -->|rejected| W
 ```
 
-### State Flow
+### Pipeline Stages
 
-1. **Input** → Topic + Keywords enter the system
-2. **Supervisor** → Validates input, routes to Research Agent
-3. **Research** → Web search via DuckDuckGo → Fact extraction with LLM
-4. **Writing** → Create outline → Generate draft
-5. **Editing** → Grammar check → SEO optimization → Professional rewrite
-6. **Approval Gate** → Human or automated review
-7. **Output** → Final content saved as Markdown file in `output/`
+| Stage | Agent | Responsibilities |
+|-------|-------|-----------------|
+| 1 | **Research** | Web search via DuckDuckGo, extract facts with LLM |
+| 2 | **Writer** | Create outline, generate draft from facts |
+| 3 | **Editor** | Grammar check, SEO optimization, professional rewrite |
+| 4 | **Approval** | Human review - approve or reject for revision |
+| 5 | **Output** | Save final content as Markdown file |
+
+### Rejection Flow
+
+If content is **rejected** at the Approval gate, it loops back to the Writer agent for revision, then flows through Editor and Approval again.
 
 ---
 
@@ -182,7 +163,6 @@ content-creation-studio/
 │   ├── agents/
 │   │   ├── editor_agent.py      # Final review & approval
 │   │   ├── research_agent.py    # Web search & fact extraction
-│   │   ├── supervisor.py         # Orchestrates workflow routing
 │   │   ├── writer_agent.py      # Draft generation
 │   │   └── __init__.py
 │   ├── api/
@@ -203,10 +183,10 @@ content-creation-studio/
 │   └── main.py                  # CLI entry point
 ├── tests/
 │   ├── __init__.py
-│   ├── test_agents.py           # Agent tests (16 tests)
+│   ├── test_agents.py           # Agent tests (6 tests)
 │   ├── test_state.py            # State structure tests (5 tests)
 │   ├── test_tools.py            # Tool integration tests (8 tests)
-│   └── test_workflow.py         # Workflow tests (10 tests)
+│   └── test_workflow.py         # Workflow tests (8 tests)
 ├── output/                      # Generated content directory
 ├── .env                         # Environment configuration
 ├── .gitignore
@@ -261,12 +241,12 @@ REST API endpoints will be available at `/api/v1`:
 ### Test Results
 
 ```
-tests/test_agents.py     - 16 tests passed ✓
-tests/test_state.py      -  5 tests passed ✓
-tests/test_tools.py      -  8 tests passed ✓ (real web search verified)
-tests/test_workflow.py   - 10 tests passed ✓
+tests/test_agents.py     -  6 tests passed
+tests/test_state.py      -  5 tests passed
+tests/test_tools.py      -  8 tests passed (real web search verified)
+tests/test_workflow.py   -  8 tests passed
 =============================================
-Total: 39 passed
+Total: 27 passed
 ```
 
 ---

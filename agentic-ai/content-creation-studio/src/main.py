@@ -126,31 +126,31 @@ def run_pipeline(topic: str, keywords: list[str]) -> dict:
     
     try:
         # Step 1: Research
-        print_status("Supervisor", "Routing task to Research Agent...", 1)
+        print_status("Research Agent", "Starting research...", 1)
         state = research_agent_node(state)
         
         # If no facts found, use topic-based facts from LLM's knowledge
         if not state.get("facts"):
-            print_status("Research Agent", "Using LLM knowledge for content (web search worked, but fact extraction requires API key)", 2)
+            print_status("Research Agent", "Using LLM knowledge for content (web search worked, but fact extraction requires API key)", 1)
             # Generate facts from topic directly via LLM
             from src.tools.writing_tools import write_draft
             # We'll proceed anyway - the writer can use general knowledge
             pass
         else:
-            print_status("Research Agent", f"Found {len(state['facts'])} relevant sources", 2)
+            print_status("Research Agent", f"Found {len(state['facts'])} relevant sources", 1)
         
         # Step 2: Writing
-        print_status("Supervisor", "Routing task to Writer Agent...", 2)
+        print_status("Writer Agent", "Generating draft...", 2)
         state = writer_agent_node(state)
         
         if not state.get("draft"):
             return {"state": state, "error": "Failed to generate draft", "approved": False}
         
         word_count = len(state["draft"].split())
-        print_status("Writer Agent", f"Draft complete ({word_count} words)", 3)
+        print_status("Writer Agent", f"Draft complete ({word_count} words)", 2)
         
         # Step 3: Editing
-        print_status("Supervisor", "Routing task to Editor Agent...", 3)
+        print_status("Editor Agent", "Processing content...", 3)
         state = editor_agent_node(state)
         
         if not state.get("final_content"):

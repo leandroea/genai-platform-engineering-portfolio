@@ -1,7 +1,7 @@
 """LangGraph workflow for Content Creation Studio.
 
 This module defines the state graph that orchestrates the multi-agent content creation pipeline.
-The workflow follows: Supervisor → Research → Writer → Editor → Approval Gate → Output
+The workflow follows a linear pipeline: Research → Writer → Editor → Approval → Output
 """
 
 import os
@@ -10,7 +10,6 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
 from src.state.content_state import ContentState
-from src.agents.supervisor import supervisor_node, route_to_agent
 from src.agents.research_agent import research_agent_node
 from src.agents.writer_agent import writer_agent_node
 from src.agents.editor_agent import editor_agent_node
@@ -19,22 +18,26 @@ from src.agents.editor_agent import editor_agent_node
 def create_content_graph() -> StateGraph:
     """Create the LangGraph StateGraph for content creation workflow.
     
-    The workflow graph consists of:
-    - supervisor_node: Validates input and manages routing
-    - research_agent_node: Gathers facts from web search
-    - writer_agent_node: Creates draft content
-    - editor_agent_node: Polishes and optimizes content
-    - approval_node: Human-in-the-loop approval gate
+    The workflow graph follows a linear pipeline pattern:
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  START → Research → Writer → Editor → Approval → END              │
+    │                                     ↑                              │
+    │                                     └──── rejected ────┘           │
+    └─────────────────────────────────────────────────────────────────────┘
     
-    Edges:
-    - START → supervisor
-    - supervisor → research_agent (if no facts yet)
-    - supervisor → writer_agent (if facts exist, no draft)
-    - supervisor → editor_agent (if draft exists, no final)
-    - supervisor → approval (if final content exists)
+    Nodes (in execution order):
+    - research_agent: Gathers facts from web search
+    - writer_agent: Creates draft content
+    - editor_agent: Polishes and optimizes content
+    - approval: Human-in-the-loop approval gate
+    
+    Edges (linear with rejection loop):
+    - START → research_agent
+    - research_agent → writer_agent
+    - writer_agent → editor_agent
     - editor_agent → approval
-    - approval → writer_agent (if rejected, for revision)
     - approval → END (if approved)
+    - approval → writer_agent (if rejected, for revision)
     
     Returns:
         A configured StateGraph instance
@@ -42,46 +45,28 @@ def create_content_graph() -> StateGraph:
     # Define the workflow graph
     workflow = StateGraph(ContentState)
     
-    # Add nodes
-    workflow.add_node("supervisor", supervisor_node)
+    # Add nodes in pipeline order
     workflow.add_node("research_agent", research_agent_node)
     workflow.add_node("writer_agent", writer_agent_node)
     workflow.add_node("editor_agent", editor_agent_node)
     workflow.add_node("approval", approval_node)
     
-    # Set entry point
-    workflow.set_entry_point("supervisor")
+    # Set entry point - start with research
+    workflow.set_entry_point("research_agent")
     
-    # Add conditional edges from supervisor based on state
-    workflow.add_conditional_edges(
-        "supervisor",
-        route_to_agent,
-        {
-            "research_agent": "research_agent",
-            "writer_agent": "writer_agent",
-            "editor_agent": "editor_agent",
-            "approval": "approval",
-            "finish": END
-        }
-    )
-    
-    # Research → back to supervisor for routing
-    workflow.add_edge("research_agent", "supervisor")
-    
-    # Writer → back to supervisor for routing
-    workflow.add_edge("writer_agent", "supervisor")
-    
-    # Editor → approval gate
+    # Linear pipeline flow
+    workflow.add_edge("research_agent", "writer_agent")
+    workflow.add_edge("writer_agent", "editor_agent")
     workflow.add_edge("editor_agent", "approval")
     
-    # Approval conditional routing
+    # Approval conditional routing (rejection loops back to writer)
     workflow.add_conditional_edges(
         "approval",
         lambda state: state.get("approval_status", "pending"),
         {
             "approved": END,
             "rejected": "writer_agent",  # Send back to writer for revision
-            "pending": "supervisor"  # Should not happen, but handle it
+            "pending": END  # Default to end if somehow still pending
         }
     )
     

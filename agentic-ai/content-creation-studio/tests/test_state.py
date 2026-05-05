@@ -22,7 +22,7 @@ class TestContentState:
             "final_content": "Final content",
             "approval_status": "pending",
             "revision_notes": "Revision notes",
-            "current_agent": "supervisor"
+            "current_agent": "pipeline"
         }
         
         assert state["topic"] == "Test Topic"
@@ -33,7 +33,7 @@ class TestContentState:
         assert state["final_content"] == "Final content"
         assert state["approval_status"] == "pending"
         assert state["revision_notes"] == "Revision notes"
-        assert state["current_agent"] == "supervisor"
+        assert state["current_agent"] == "pipeline"
     
     def test_content_state_empty_values(self):
         """Test that ContentState accepts empty initial values."""
@@ -102,9 +102,9 @@ class TestContentState:
     
     def test_content_state_agent_values(self):
         """Test various agent values."""
-        agents = ["none", "supervisor", "research_agent", "writer_agent", 
+        agents = ["none", "research_agent", "writer_agent", 
                   "editor_agent", "research_complete", "writer_complete", 
-                  "writer_error", "editor_complete", "approval"]
+                  "writer_error", "editor_complete", "approval", "pipeline"]
         
         for agent in agents:
             state: ContentState = {
