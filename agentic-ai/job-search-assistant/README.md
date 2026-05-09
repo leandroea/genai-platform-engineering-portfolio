@@ -48,7 +48,6 @@ Job seekers waste time on repetitive tasks (customizing resumes, writing cover l
 
 ```
 job-search-assistant/
-├── SPEC.md                      # Detailed specification document
 ├── requirements.txt             # Python dependencies
 ├── .env                         # Environment variables (API keys)
 ├── .env.example                 # Environment template
@@ -104,18 +103,27 @@ The system uses **LangGraph** for workflow orchestration with a **Supervisor pat
 
 ### Agent Coordination Model
 
+The Supervisor agent acts as the central coordinator, dispatching tasks to independent subordinate agents and synthesizing their results:
+
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Supervisor Agent                  │
-│         (Coordinates, decides, prioritizes)          │
-└──────────┬──────────────────────────────────────────┘
-           │
-     ┌─────┼─────┬─────┬──────┬───────┬────────┐
-     ▼     ▼     ▼     ▼      ▼       ▼        ▼
-┌──────── ┌──── ┌────┐ ┌────┐ ┌─────┐ ┌─────┐ ┌────┐
-│ Resume  │Cover│ Job│ │Resume│ │Inter│ │Appl │
-│ Tailor  │Letter│Aggr│ │Score│ │view │ │Form │
-└──────── └──── └────┘ └────┘ └─────┘ └─────┘ └─────┘
+                    ┌─────────────────────────────────────┐
+                    │           SUPERVISOR AGENT          │
+                    │     (Central Coordinator)          │
+                    └──────────────────┬──────────────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+              ▼                        ▼                        ▼
+     ┌──────────────┐          ┌──────────────┐         ┌──────────────┐
+     │  RESUME      │          │  COVER       │         │    JOB       │
+     │  TAILOR      │          │  LETTER      │         │  AGGREGATOR  │
+     └──────────────┘          └──────────────┘         └──────────────┘
+              │                        │                        │
+              ▼                        ▼                        ▼
+     ┌──────────────┐          ┌──────────────┐         ┌──────────────┐
+     │  RESUME      │          │  APPLICATION │         │  INTERVIEW   │
+     │  SCORER      │          │  FORM        │         │  COACH       │
+     └──────────────┘          └──────────────┘         └──────────────┘
 ```
 
 ---
@@ -377,7 +385,3 @@ python src/main.py
 | HTTP Client | requests | >= 2.31.0 |
 
 ---
-
-## License
-
-MIT License
