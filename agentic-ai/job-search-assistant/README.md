@@ -106,25 +106,27 @@ The system uses **LangGraph** for workflow orchestration with a **Supervisor pat
 The Supervisor agent acts as the central coordinator, dispatching tasks to independent subordinate agents and synthesizing their results:
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │           SUPERVISOR AGENT          │
-                    │     (Central Coordinator)          │
-                    └──────────────────┬──────────────────┘
+                            ┌─────────────────────┐
+                            │   SUPERVISOR AGENT   │
+                            │   (Coordinator)     │
+                            └──────────┬──────────┘
                                        │
-              ┌────────────────────────┼────────────────────────┐
-              │                        │                        │
-              ▼                        ▼                        ▼
-     ┌──────────────┐          ┌──────────────┐         ┌──────────────┐
-     │  RESUME      │          │  COVER       │         │    JOB       │
-     │  TAILOR      │          │  LETTER      │         │  AGGREGATOR  │
-     └──────────────┘          └──────────────┘         └──────────────┘
-              │                        │                        │
-              ▼                        ▼                        ▼
-     ┌──────────────┐          ┌──────────────┐         ┌──────────────┐
-     │  RESUME      │          │  APPLICATION │         │  INTERVIEW   │
-     │  SCORER      │          │  FORM        │         │  COACH       │
-     └──────────────┘          └──────────────┘         └──────────────┘
+        ┌──────────────┬───────────────┼───────────────┬──────────────┐
+        │              │               │               │              │
+        ▼              ▼               ▼               ▼              ▼
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │ Resume  │    │  Cover  │    │   Job   │    │  Resume │    │Interview│
+   │  Tailor │    │  Letter │    │Aggregator│   │  Scorer │    │  Coach  │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
+                                                              │
+                                                              ▼
+                                                        ┌───────────┐
+                                                        │Application│
+                                                        │   Form    │
+                                                        └───────────┘
 ```
+
+**Key Pattern**: Unlike sequential pipelines, agents work **autonomously** and report back to the Supervisor for decision-making.
 
 ---
 
