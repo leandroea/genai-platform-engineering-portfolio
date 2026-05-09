@@ -107,23 +107,18 @@ The Supervisor agent acts as the central coordinator, dispatching tasks to indep
 
 ```
                             ┌─────────────────────┐
-                            │   SUPERVISOR AGENT   │
+                            │   SUPERVISOR AGENT  │
                             │   (Coordinator)     │
                             └──────────┬──────────┘
                                        │
-        ┌──────────────┬───────────────┼───────────────┬──────────────┐
-        │              │               │               │              │
-        ▼              ▼               ▼               ▼              ▼
-   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-   │ Resume  │    │  Cover  │    │   Job   │    │  Resume │    │Interview│
-   │  Tailor │    │  Letter │    │Aggregator│   │  Scorer │    │  Coach  │
-   └─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
-                                                              │
-                                                              ▼
-                                                        ┌───────────┐
-                                                        │Application│
-                                                        │   Form    │
-                                                        └───────────┘
+        ┌──────────────┬───────────────┼───────────────┬──────────────┬──────────────┐
+        │              │               │               │              │              │
+        ▼              ▼               ▼               ▼              ▼              ▼
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐      ┌───────────┐
+   │ Resume  │    │  Cover  │    │   Job   │    │  Resume │    │Interview│      │Application│
+   │  Tailor │    │  Letter │    │Aggregator│   │  Scorer │    │  Coach  │      │   Form    │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘      └───────────┘
+                                            
 ```
 
 **Key Pattern**: Unlike sequential pipelines, agents work **autonomously** and report back to the Supervisor for decision-making.
