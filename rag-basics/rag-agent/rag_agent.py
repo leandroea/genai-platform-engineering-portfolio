@@ -1,151 +1,81 @@
 """
 RAG Agent for PDF Question Answering
-Uses Chroma for vector storage and NVIDIA's Qwen model for generation.
-Uses modern LangChain Expression Language (LCEL).
+Uses LlamaIndex with Chroma vector store and NVIDIA API.
 """
 
 import os
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.chains import create_retrieval_chain
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
+
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, StorageContext
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.embeddings.ollama import OllamaEmbedding
+import chromadb
 
 # Configuration
 PDF_PATH = "AI Engineering.pdf"
-PERSIST_DIRECTORY = os.getenv("PERSIST_DIRECTORY", "./chroma_db")
+PERSIST_DIR = os.getenv("PERSIST_DIRECTORY", "./chroma_db")
 MODEL_NAME = os.getenv("MODEL_NAME", "qwen/qwen3.5-397b-a17b")
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://integrate.api.nvidia.com/v1")
-
-
-def load_pdf(pdf_path: str):
-    """Load PDF document using PyPDFLoader."""
-    print(f"Loading PDF: {pdf_path}")
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
-    print(f"Loaded {len(documents)} pages")
-    return documents
-
-
-def split_documents(documents, chunk_size: int = 1000, chunk_overlap: int = 200):
-    """Split documents into smaller chunks for embedding."""
-    print(f"Splitting documents into chunks (size={chunk_size}, overlap={chunk_overlap})")
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        length_function=len,
-    )
-    chunks = text_splitter.split_documents(documents)
-    print(f"Created {len(chunks)} chunks")
-    return chunks
-
-
-def create_vector_store(chunks, persist_directory: str):
-    """Create and persist Chroma vector store from document chunks."""
-    print(f"Creating Chroma vector store at: {persist_directory}")
-    
-    # Use NVIDIA embeddings
-    embeddings = NVIDIAEmbeddings(
-        model="nvidia/llama-nemotron-embed-1b-v2",
-        nvidia_api_key=os.getenv("NVIDIA_API_KEY"),
-    )
-    
-    # Create or load vector store
-    if os.path.exists(persist_directory) and os.listdir(persist_directory):
-        print("Loading existing vector store...")
-        vectorstore = Chroma(
-            persist_directory=persist_directory,
-            embedding_function=embeddings,
-        )
-    else:
-        print("Creating new vector store...")
-        vectorstore = Chroma.from_documents(
-            documents=chunks,
-            embedding=embeddings,
-            persist_directory=persist_directory,
-        )
-        vectorstore.persist()
-    
-    return vectorstore
-
-
-def create_qa_chain(vectorstore):
-    """Create a retrieval-augmented question answering chain using LCEL."""
-    print("Creating QA chain...")
-    
-    # Initialize the LLM (OpenAI-compatible, pointing to NVIDIA)
-    llm = ChatOpenAI(
-        model=MODEL_NAME,
-        openai_api_key=os.getenv("NVIDIA_API_KEY"),
-        openai_api_base=OPENAI_API_BASE,
-        temperature=0.7,
-        max_tokens=2048,
-    )
-    
-    # Create retriever
-    retriever = vectorstore.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 5},
-    )
-    
-    # Custom prompt using ChatPromptTemplate
-    prompt = ChatPromptTemplate.from_template("""Answer the question based only on the provided context.
-    If you don't know the answer based on the context, say that you don't know.
-    Don't make up information that's not directly supported by the context.
-
-    Context:
-    {context}
-
-    Question: {input}
-
-    Answer:""")
-    
-    # Create the combine documents chain (handles formatting docs into context)
-    combine_docs_chain = create_stuff_documents_chain(llm, prompt)
-    
-    # Create the full retrieval chain
-    retrieval_chain = create_retrieval_chain(retriever, combine_docs_chain)
-    
-    return retrieval_chain
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
 
 
 def main():
-    """Main function to run the RAG agent."""
     print("=" * 50)
-    print("RAG Agent - PDF Question Answering")
+    print("RAG Agent - PDF Q&A (LlamaIndex + Ollama + NVIDIA)")
     print("=" * 50)
     
-    # Check for NVIDIA API key
-    if not os.getenv("NVIDIA_API_KEY"):
-        print("Error: NVIDIA_API_KEY not found in environment variables")
-        print("Please set your API key in the .env file")
-        return
+    # Setup embedding model
+    embed_model = OllamaEmbedding(model_name=EMBEDDING_MODEL, base_url=OLLAMA_BASE_URL)
     
-    # Load PDF and create vector store
-    documents = load_pdf(PDF_PATH)
-    chunks = split_documents(documents)
-    vectorstore = create_vector_store(chunks, PERSIST_DIRECTORY)
+    # Load PDF
+    print(f"Loading PDF: {PDF_PATH}")
+    documents = SimpleDirectoryReader(input_files=[PDF_PATH]).load_data()
+    print(f"Loaded {len(documents)} document nodes")
     
-    # Create QA chain
-    qa_chain = create_qa_chain(vectorstore)
+    # Check for existing index
+    chroma_collection = "rag_agent"
+    chroma_db_file = os.path.join(PERSIST_DIR, "chroma.sqlite3")
+    
+    # Load or create index
+    if os.path.exists(chroma_db_file):
+        try:
+            # Load existing index - use chromadb client
+            client = chromadb.PersistentClient(path=PERSIST_DIR)
+            collection = client.get_collection(name=chroma_collection)
+            vector_store = ChromaVectorStore(chroma_collection=collection)
+            index = VectorStoreIndex.from_vector_store(vector_store=vector_store, embed_model=embed_model)
+            print("Loaded existing index")
+        except Exception as e:
+            print(f"Could not load existing index: {e}")
+            raise
+    else:
+        # Create new index
+        client = chromadb.PersistentClient(path=PERSIST_DIR)
+        collection = client.get_or_create_collection(name=chroma_collection)
+        vector_store = ChromaVectorStore(chroma_collection=collection)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        index = VectorStoreIndex.from_documents(
+            documents,
+            storage_context=storage_context,
+            embed_model=embed_model,
+            show_progress=True,
+        )
+        print("Created new index")
+    
+    retriever = index.as_retriever(similarity_top_k=5)
     
     print("\n" + "=" * 50)
     print("RAG Agent is ready! Ask questions about the PDF.")
     print("Type 'quit' or 'exit' to stop.")
     print("=" * 50 + "\n")
     
-    # Interactive question answering loop
+    # Query loop
     while True:
         try:
             question = input("Question: ").strip()
-            
             if question.lower() in ["quit", "exit", "q"]:
                 print("Goodbye!")
                 break
@@ -153,20 +83,32 @@ def main():
             if not question:
                 continue
             
-            print("\nSearching for answer...")
-            result = qa_chain.invoke({"input": question})
+            print("\nSearching...")
+            nodes = retriever.retrieve(question)
             
-            print("\nAnswer:")
-            print(result["answer"])
+            if not nodes:
+                print("No relevant documents found.")
+                continue
             
-            # Show source documents if available
-            if result.get("context"):
-                print("\n--- Source References ---")
-                for i, doc in enumerate(result["context"][:3], 1):
-                    source = doc.metadata.get("source", "Unknown")
-                    page = doc.metadata.get("page", "Unknown")
-                    print(f"{i}. {source} (Page {page})")
+            # Query NVIDIA
+            from openai import OpenAI
+            client = OpenAI(api_key=os.getenv("NVIDIA_API_KEY"), base_url=OPENAI_API_BASE)
+            context = "\n\n".join([n.text for n in nodes])
             
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "Answer based on the context. If you don't know, say so."},
+                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"}
+                ],
+                temperature=0.7,
+            )
+            
+            print("\nAnswer:", response.choices[0].message.content)
+            
+            print("\n--- Sources ---")
+            for i, n in enumerate(nodes[:3], 1):
+                print(f"{i}. Page {n.metadata.get('page_label', '?')}")
             print()
             
         except KeyboardInterrupt:

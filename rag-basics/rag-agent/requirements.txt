@@ -1,14 +1,6 @@
-# RAG Agent Dependencies
-langchain
-langchain-classic
-langchain-openai
-langchain-core
-langchain-community
-langchain-chroma
-langchain-text-splitters
-langchain-nvidia-ai-endpoints
-chromadb
+# RAG Agent Dependencies - LlamaIndex
+llama-index
+llama-index-embeddings-ollama
 pypdf
 python-dotenv
-openai
-torch
+chromadb
